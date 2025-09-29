@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Upload, Clock, MessageCircle, CheckCircle, Send } from 'lucide-react';
 import aiService from '../services/aiService';
-import type { Answer, Question, BatchScoringResult } from '../types';
+import type { Answer, Question } from '../types';
 
 interface Message {
   id: string;

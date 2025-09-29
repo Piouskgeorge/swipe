@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import type { Candidate, Interview, Question, ChatMessage, Answer, BatchScoringResult } from '../types';
+import type { Candidate, Interview, Question, Answer, BatchScoringResult } from '../types';
 
 // For demo purposes, we'll use a fallback if no API key is provided
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
@@ -496,12 +496,10 @@ Return ONLY a JSON array with exactly this structure:
     
     // Parse domain and position from input (e.g., "Cybersecurity - Security Analyst")
     let domain = positionInput.toLowerCase();
-    let position = positionInput;
     
     if (positionInput.includes(' - ')) {
       const parts = positionInput.split(' - ');
       domain = parts[0].trim().toLowerCase();
-      position = parts[1].trim();
     }
     
     // Map common domains to question categories

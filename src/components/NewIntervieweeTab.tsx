@@ -75,8 +75,6 @@ const NewIntervieweeTab: React.FC = () => {
   const [currentAnswer, setCurrentAnswer] = useState('');
   const [candidateId, setCandidateId] = useState<string>('');
   const [allAnswers, setAllAnswers] = useState<Answer[]>([]);
-  const [finalResults, setFinalResults] = useState<BatchScoringResult | null>(null);
-  const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
   const [isScoringAnswers, setIsScoringAnswers] = useState(false);
   
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -135,7 +133,6 @@ const NewIntervieweeTab: React.FC = () => {
       
       // Get comprehensive scoring from AI
       const scoringResult = await aiService.scoreAllAnswers(questionsAndAnswers);
-      setFinalResults(scoringResult);
       
       // Update candidate with final results
       if (candidateId) {
