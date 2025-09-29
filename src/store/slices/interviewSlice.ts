@@ -88,6 +88,57 @@ const interviewSlice = createSlice({
       state.currentQuestion = null;
       state.timeRemaining = 0;
       state.timerStatus = 'stopped';
+      state.questions = [];
+    },
+    // New actions for batch workflow
+    setAllQuestions: (state, action: PayloadAction<Question[]>) => {
+      state.questions = action.payload;
+      if (state.currentInterview) {
+        state.currentInterview.questions = action.payload;
+        // Set first question as current
+        if (action.payload.length > 0) {
+          state.currentQuestion = action.payload[0];
+          state.timeRemaining = action.payload[0].timeLimit;
+        }
+      }
+    },
+    moveToNextQuestion: (state) => {
+      if (state.currentInterview && state.questions.length > 0) {
+        const nextIndex = state.currentInterview.currentQuestionIndex + 1;
+        if (nextIndex < state.questions.length) {
+          state.currentInterview.currentQuestionIndex = nextIndex;
+          state.currentQuestion = state.questions[nextIndex];
+          state.timeRemaining = state.questions[nextIndex].timeLimit;
+          state.timerStatus = 'running';
+        } else {
+          // Interview completed
+          state.currentQuestion = null;
+          state.timeRemaining = 0;
+          state.timerStatus = 'completed';
+          state.currentInterview.endTime = new Date();
+        }
+      }
+    },
+    submitAnswerAndNext: (state, action: PayloadAction<Answer>) => {
+      if (state.currentInterview) {
+        // Add answer
+        state.currentInterview.answers.push(action.payload);
+        
+        // Move to next question
+        const nextIndex = state.currentInterview.currentQuestionIndex + 1;
+        if (nextIndex < state.questions.length) {
+          state.currentInterview.currentQuestionIndex = nextIndex;
+          state.currentQuestion = state.questions[nextIndex];
+          state.timeRemaining = state.questions[nextIndex].timeLimit;
+          state.timerStatus = 'running';
+        } else {
+          // Interview completed
+          state.currentQuestion = null;
+          state.timeRemaining = 0;
+          state.timerStatus = 'completed';
+          state.currentInterview.endTime = new Date();
+        }
+      }
     },
   },
 });
@@ -105,6 +156,9 @@ export const {
   nextQuestion,
   setTimerStatus,
   clearInterview,
+  setAllQuestions,
+  moveToNextQuestion,
+  submitAnswerAndNext,
 } = interviewSlice.actions;
 
 export default interviewSlice.reducer;

@@ -111,7 +111,7 @@ function App() {
 
       <div className="container">
         {user.role === 'interviewee' ? (
-          <WorkingIntervieweeTab user={user} onLogout={handleLogout} />
+          <WorkingIntervieweeTab />
         ) : (
           <WorkingInterviewerTab user={user} onLogout={handleLogout} />
         )}

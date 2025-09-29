@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { Upload, MessageCircle, Clock, FileText, Send, CheckCircle2, AlertCircle, Brain, Zap } from 'lucide-react';
+import { Upload, Send, MessageCircle, FileText, Clock, AlertCircle, CheckCircle2 } from 'lucide-react';
 import type { RootState } from '../store';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -90,6 +90,7 @@ const IntervieweeTab: React.FC<IntervieweeTabProps> = () => {
       ...candidateInfo,
       status: 'interviewing',
       createdAt: new Date(),
+      startedAt: new Date(),
       resumeFile: resumeFile || undefined
     };
 

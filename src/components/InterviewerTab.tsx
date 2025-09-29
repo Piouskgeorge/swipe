@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useSelector } from 'react-redux';
-import { Search, Eye, Users, Trophy, Clock, Filter, SortAsc, Calendar, Mail, Phone } from 'lucide-react';
+import { Search, Eye, Users, Trophy, Clock, Filter, Calendar, Mail, Phone } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +11,6 @@ import { cn } from '@/lib/utils';
 
 const InterviewerTab: React.FC = () => {
   const { candidates } = useSelector((state: RootState) => state.candidates);
-  const { chatHistories } = useSelector((state: RootState) => state.app);
   
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -104,8 +103,8 @@ const InterviewerTab: React.FC = () => {
     return `${baseClass} bg-red-100 text-red-800`;
   };
 
-  const renderChatHistory = (candidateId: string) => {
-    const messages: ChatMessage[] = chatHistories[candidateId] || [];
+  const renderChatHistory = (_candidateId: string) => {
+    const messages: ChatMessage[] = [];
     
     if (messages.length === 0) {
       return (

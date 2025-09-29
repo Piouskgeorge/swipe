@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Progress } from './ui/progress';
-import { AlertCircle, Clock, Upload, FileText, CheckCircle, BarChart3, Zap, User, Trophy, Target } from 'lucide-react';
+import { FileText, User, Clock, Upload, Zap, CheckCircle, AlertCircle, Target, BarChart3 } from 'lucide-react';
 import { Alert, AlertDescription } from './ui/alert';
 
 // Types

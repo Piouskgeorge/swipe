@@ -381,21 +381,21 @@ ${resumeData.text ? '📄 **Resume text extracted successfully**' : ''}
     }
   };
 
-  const formatFinalReport = (report: any) => {
-    if (!report) return 'Report not available';
-    
-    return `**Overall Score:** ${report.overallScore}%
-**Accuracy:** ${report.accuracyPercentage}%
-**Technical Competency:** ${report.technicalCompetency}
-**Communication:** ${report.communicationScore}/100
-**Recommendation:** ${report.recommendation}
+  // const formatFinalReport = (responses: any[], report: any): string => {
+  //   if (!report) return 'Report not available';
+  //   
+  //   return `**Overall Score:** ${report.overallScore}%
+  // **Accuracy:** ${report.accuracyPercentage}%
+  // **Technical Competency:** ${report.technicalCompetency}
+  // **Communication:** ${report.communicationScore}/100
+  // **Recommendation:** ${report.recommendation}
 
-**Strengths:**
-${report.strengths?.map((s: string) => `• ${s}`).join('\n') || 'None listed'}
+  // **Strengths:**
+  // ${report.strengths?.map((s: string) => `• ${s}`).join('\n') || 'None listed'}
 
-**Areas for Improvement:**
-${report.improvements?.map((i: string) => `• ${i}`).join('\n') || 'None listed'}`;
-  };
+  // **Areas for Improvement:**
+  // ${report.improvements?.map((i: string) => `• ${i}`).join('\n') || 'None listed'}`;
+  // };
 
   const handleSubmitResponse = async (isTimeUp = false) => {
     if (!currentQuestion || (!currentInput.trim() && !isTimeUp)) return;
@@ -513,7 +513,7 @@ ${report.improvements?.map((i: string) => `• ${i}`).join('\n') || 'None listed
     // Note: Question flow is now handled by the backend response
   };
 
-  const completeInterview = async (interviewId: string) => {
+  const completeInterview = async (_interviewId: string) => {
     // This function is now handled by the response submission endpoint
     // Just update the UI state
     addMessage({
@@ -582,13 +582,6 @@ ${report.improvements?.map((i: string) => `• ${i}`).join('\n') || 'None listed
         });
       }, 1000);
     } else {
-      const fullInfo = {
-        ...candidateInfo,
-        [fieldName]: currentInput.trim(),
-        resumeText: candidateInfo.resumeText,
-        extractedData: candidateInfo.extractedData
-      };
-      
       setTimeout(() => {
         addMessage({
           type: 'bot',

@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import type { Candidate, Interview, Question, ChatMessage, Answer } from '../types';
+import type { Candidate, Interview, Question, ChatMessage, Answer, BatchScoringResult } from '../types';
 
 // For demo purposes, we'll use a fallback if no API key is provided
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
@@ -199,6 +199,103 @@ IMPORTANT RULES:
     }
     
     return 'general';
+  }
+
+  // Generate all interview questions at once (new workflow)
+  async generateAllInterviewQuestions(resumeText: string, positionInput: string, difficulty: 'easy' | 'medium' | 'hard' = 'medium'): Promise<Question[]> {
+    return this.generateQuestions(resumeText, positionInput, difficulty);
+  }
+
+  // Extract candidate info from resume
+  async extractCandidateInfo(resumeText: string): Promise<{
+    name: string;
+    email: string;
+    phone: string;
+    domain: string;
+    position: string;
+    skills: string[];
+    experience: string;
+    extractedData: string;
+  }> {
+    if (USE_AI && this.model) {
+      try {
+        console.log('🤖 Using Gemini AI for candidate info extraction...');
+        
+        const prompt = `Analyze this resume and extract key candidate information:
+
+RESUME:
+${resumeText}
+
+Extract the following information and return in JSON format:
+{
+  "name": "Full name of the candidate",
+  "email": "Email address", 
+  "phone": "Phone number",
+  "domain": "Technical domain/field (e.g., Frontend Development, Backend, DevOps, Data Science, Mobile, Cybersecurity)",
+  "position": "Specific role/title (e.g., React Developer, DevOps Engineer, Data Scientist)",
+  "skills": ["skill1", "skill2", "skill3"],
+  "experience": "Brief summary of work experience"
+}
+
+IMPORTANT:
+- For domain, identify the PRIMARY technical area from: Frontend Development, Backend Development, DevOps, Mobile Development, Data Science, Cybersecurity, Full Stack Development
+- For position, be specific about the role they're targeting or currently in
+- Extract 5-10 key technical skills
+- Keep experience summary to 2-3 sentences`;
+
+        const result = await this.model.generateContent(prompt);
+        const response = result.response.text();
+        
+        // Try to parse JSON response
+        try {
+          const jsonMatch = response.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const data = JSON.parse(jsonMatch[0]);
+            return {
+              ...data,
+              extractedData: resumeText
+            };
+          }
+        } catch (parseError) {
+          console.warn('Failed to parse AI response as JSON, using fallback');
+        }
+      } catch (error) {
+        console.error('AI candidate extraction failed:', error);
+      }
+    }
+    
+    return this.extractCandidateInfoLocal(resumeText);
+  }
+
+  private extractCandidateInfoLocal(resumeText: string): {
+    name: string;
+    email: string;
+    phone: string;
+    domain: string;
+    position: string;
+    skills: string[];
+    experience: string;
+    extractedData: string;
+  } {
+    // Simple extraction using regex patterns
+    const emailMatch = resumeText.match(/[\w\.-]+@[\w\.-]+\.\w+/);
+    const phoneMatch = resumeText.match(/[\+]?[\d\s\-\(\)]{10,}/);
+    const nameMatch = resumeText.match(/(?:Name|NAME):\s*([^\n]+)/i) || 
+                     resumeText.split('\n')[0]?.match(/^([A-Z][a-z]+\s+[A-Z][a-z]+)/);
+    
+    const technologies = this.extractTechnologies(resumeText);
+    const domain = this.identifyDomain('', resumeText);
+    
+    return {
+      name: nameMatch?.[1]?.trim() || 'Candidate',
+      email: emailMatch?.[0] || 'email@example.com',
+      phone: phoneMatch?.[0]?.replace(/\s+/g, '') || '1234567890',
+      domain: domain.charAt(0).toUpperCase() + domain.slice(1),
+      position: `${domain.charAt(0).toUpperCase() + domain.slice(1)} Developer`,
+      skills: technologies.slice(0, 8),
+      experience: 'Experienced developer with skills in various technologies.',
+      extractedData: resumeText
+    };
   }
 
   // AI-powered question generation with domain-specific focus
@@ -719,6 +816,192 @@ Areas for Growth: ${avgScore < 70 ? 'Would benefit from deeper technical knowled
 Overall Recommendation: ${avgScore >= 75 ? 'RECOMMENDED - Strong technical candidate' : avgScore >= 60 ? 'CONSIDER - Good potential with some development needed' : 'REQUIRES FURTHER EVALUATION - Additional technical assessment recommended'}`;
     
     return { score: Math.round(avgScore), summary };
+  }
+
+  // AI-powered batch scoring for all answers at once (NEW WORKFLOW)
+  async scoreAllAnswers(questionsAndAnswers: Array<{question: Question, answer: Answer}>): Promise<BatchScoringResult> {
+    console.log('🤖 Scoring Interview - AI Available:', USE_AI, 'Model Ready:', !!this.model);
+    
+    if (USE_AI && this.model) {
+      try {
+        console.log('🔄 Starting AI batch scoring for', questionsAndAnswers.length, 'questions...');
+        
+        const interviewData = questionsAndAnswers.map((qa, index) => 
+          `QUESTION ${index + 1} (${qa.question.difficulty.toUpperCase()} - ${qa.question.timeLimit}s):
+${qa.question.text}
+
+CANDIDATE ANSWER (Time spent: ${qa.answer.timeSpent}s):
+${qa.answer.answer || 'No answer provided'}
+
+---`
+        ).join('\n\n');
+
+        const prompt = `You are a senior technical interviewer evaluating a complete technical interview. Please analyze all questions and answers together to provide comprehensive scoring and feedback.
+
+COMPLETE INTERVIEW DATA:
+${interviewData}
+
+EVALUATION REQUIREMENTS:
+
+1. INDIVIDUAL QUESTION SCORING (0-100 each):
+Score each answer based on:
+- Technical Accuracy (40 points): Correctness and precision
+- Depth of Knowledge (30 points): Understanding of concepts
+- Practical Application (20 points): Real-world examples and use cases  
+- Communication (10 points): Clarity and structure
+
+2. OVERALL ASSESSMENT:
+- Calculate overall interview score (0-100)
+- Provide comprehensive feedback covering strengths and improvement areas
+- Give hiring recommendation: "Hire", "Consider", or "Pass"
+
+CRITICAL INSTRUCTIONS:
+- Be fair but rigorous in technical evaluation
+- Consider difficulty level when scoring (easier questions need higher accuracy)
+- Value practical knowledge and real-world understanding
+- Account for time management in evaluation
+- Provide actionable, specific feedback
+- "I don't know" answers should receive 0-10 points maximum
+
+FORMAT YOUR RESPONSE EXACTLY AS:
+
+INDIVIDUAL_SCORES:
+Q1: SCORE:[number] FEEDBACK:[specific technical feedback for question 1]
+Q2: SCORE:[number] FEEDBACK:[specific technical feedback for question 2]
+Q3: SCORE:[number] FEEDBACK:[specific technical feedback for question 3]
+Q4: SCORE:[number] FEEDBACK:[specific technical feedback for question 4]
+Q5: SCORE:[number] FEEDBACK:[specific technical feedback for question 5]
+Q6: SCORE:[number] FEEDBACK:[specific technical feedback for question 6]
+
+OVERALL_SCORE: [number]
+
+OVERALL_FEEDBACK:
+[Comprehensive analysis including:
+- Technical strengths demonstrated
+- Key areas for improvement  
+- Communication and problem-solving assessment
+- Specific recommendations for growth]
+
+RECOMMENDATION: [Hire/Consider/Pass]
+REASONING: [Brief explanation of recommendation]`;
+
+        console.log('📤 Sending interview data to Gemini for scoring...');
+        const result = await this.model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
+        console.log('📥 Received AI scoring response:', text.substring(0, 200) + '...');
+
+        // Parse the response
+        const individualScores: Array<{ score: number; feedback: string }> = [];
+        
+        // Extract individual scores
+        const scoreMatches = text.match(/Q\d+:\s*SCORE:\s*(\d+)\s*FEEDBACK:\s*([^\n\r]*)/g);
+        if (scoreMatches) {
+          scoreMatches.forEach((match: string) => {
+            const scoreMatch = match.match(/SCORE:\s*(\d+)/);
+            const feedbackMatch = match.match(/FEEDBACK:\s*(.*)/);
+            if (scoreMatch && feedbackMatch) {
+              individualScores.push({
+                score: parseInt(scoreMatch[1]),
+                feedback: feedbackMatch[1].trim()
+              });
+            }
+          });
+        }
+
+        // Extract overall data
+        const overallScoreMatch = text.match(/OVERALL_SCORE:\s*(\d+)/);
+        const overallFeedbackMatch = text.match(/OVERALL_FEEDBACK:\s*([\s\S]*?)(?=RECOMMENDATION:|$)/);
+        const recommendationMatch = text.match(/RECOMMENDATION:\s*(Hire|Consider|Pass)/);
+
+        const overallScore = overallScoreMatch ? parseInt(overallScoreMatch[1]) : 0;
+        const overallFeedback = overallFeedbackMatch ? overallFeedbackMatch[1].trim() : '';
+        const recommendation = recommendationMatch ? recommendationMatch[1] as 'Hire' | 'Consider' | 'Pass' : 'Pass';
+
+        // Fill in missing individual scores if needed
+        while (individualScores.length < questionsAndAnswers.length) {
+          const qa = questionsAndAnswers[individualScores.length];
+          individualScores.push(this.scoreAnswerLocal(qa.answer, qa.question));
+        }
+
+        console.log('✅ AI scoring completed successfully! Overall score:', overallScore);
+        
+        return {
+          individualScores,
+          overallScore,
+          overallFeedback,
+          recommendation
+        };
+
+      } catch (error) {
+        console.error('❌ AI batch scoring failed:', error);
+        console.log('🔄 Falling back to local scoring...');
+        return this.scoreAllAnswersLocal(questionsAndAnswers);
+      }
+    }
+
+    console.log('🔄 Using local scoring (AI not available)');
+    return this.scoreAllAnswersLocal(questionsAndAnswers);
+  }
+
+  private scoreAllAnswersLocal(questionsAndAnswers: Array<{question: Question, answer: Answer}>): BatchScoringResult {
+    const individualScores = questionsAndAnswers.map(qa => {
+      // Improved local scoring for "I don't know" answers
+      const answerLower = qa.answer.answer.toLowerCase().trim();
+      if (answerLower === "i don't know" || answerLower === "i dont know" || answerLower === "idk") {
+        return {
+          score: 0,
+          feedback: `No technical knowledge demonstrated for this ${qa.question.difficulty} question. Consider studying the relevant concepts and practicing with examples.`
+        };
+      }
+      return this.scoreAnswerLocal(qa.answer, qa.question);
+    });
+
+    const overallScore = individualScores.length > 0 
+      ? Math.round(individualScores.reduce((sum, score) => sum + score.score, 0) / individualScores.length)
+      : 0;
+
+    // Count answered vs unanswered questions
+    const answeredQuestions = questionsAndAnswers.filter(qa => 
+      qa.answer.answer && 
+      qa.answer.answer.trim() !== '' && 
+      !qa.answer.answer.toLowerCase().includes('no answer provided') &&
+      !qa.answer.answer.toLowerCase().includes("i don't know") &&
+      !qa.answer.answer.toLowerCase().includes("i dont know")
+    ).length;
+
+    const recommendation: 'Hire' | 'Consider' | 'Pass' = 
+      overallScore >= 80 && answeredQuestions >= 5 ? 'Hire' : 
+      overallScore >= 65 && answeredQuestions >= 4 ? 'Consider' : 'Pass';
+
+    const overallFeedback = `**Interview Performance Analysis**
+
+**Overall Score:** ${overallScore}/100
+**Questions Answered:** ${answeredQuestions}/${questionsAndAnswers.length}
+
+**Individual Question Performance:**
+${individualScores.map((score, index) => 
+  `Question ${index + 1} (${questionsAndAnswers[index].question.difficulty}): ${score.score}/100`
+).join('\n')}
+
+**Assessment:**
+${overallScore >= 75 ? 
+  'Good technical performance with solid understanding of core concepts.' :
+  overallScore >= 50 ? 
+  'Basic technical knowledge demonstrated. Room for improvement in depth and practical application.' :
+  'Limited technical knowledge shown. Significant preparation needed before considering technical roles.'}
+
+**Recommendation:** ${recommendation}
+${recommendation === 'Hire' ? 'Strong technical candidate ready for the role.' :
+  recommendation === 'Consider' ? 'Shows potential but needs development in key areas.' :
+  'Requires significant technical skill development before being ready for this role.'}`;
+
+    return {
+      individualScores,
+      overallScore,
+      overallFeedback,
+      recommendation
+    };
   }
 }
 

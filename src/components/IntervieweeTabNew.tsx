@@ -19,7 +19,6 @@ interface IntervieweeTabProps {
 
 function IntervieweeTab({ user, onLogout }: IntervieweeTabProps) {
   const [step, setStep] = useState(1);
-  const [interviews, setInterviews] = useState<any[]>([]);
   const [currentInterview, setCurrentInterview] = useState<any>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [currentMessage, setCurrentMessage] = useState('');
@@ -51,7 +50,7 @@ function IntervieweeTab({ user, onLogout }: IntervieweeTabProps) {
   const loadInterviews = async () => {
     try {
       const data = await apiService.getInterviews();
-      setInterviews(data.interviews || []);
+      // setInterviews(data.interviews || []);
       
       // Check for active interview
       const activeInterview = data.interviews?.find((i: any) => 

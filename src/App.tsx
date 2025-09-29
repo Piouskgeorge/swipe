@@ -3,7 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { MessageSquare, Brain, Users } from 'lucide-react';
 import type { RootState } from './store';
 import { setActiveTab } from './store/slices/appSlice';
-import CrispIntervieweeTab from './components/CrispIntervieweeTab';
+import CleanInterviewTab from './components/CleanInterviewTab';
 import CrispInterviewerTab from './components/CrispInterviewerTab';
 import WelcomeBackModal from './components/WelcomeBackModal';
 
@@ -74,9 +74,9 @@ function App() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-6">
         {activeTab === 'interviewee' ? (
-          <CrispIntervieweeTab />
+          <CleanInterviewTab />
         ) : (
-          <CrispInterviewerTab />
+          <CrispInterviewerTab candidates={[]} />
         )}
       </main>
 

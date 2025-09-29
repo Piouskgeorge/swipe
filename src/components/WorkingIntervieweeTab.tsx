@@ -774,42 +774,42 @@ ${feedback}`
             });
 
             try {
-              // Create candidate object for AI summary
-              const candidate = {
-                id: candidateId,
-                name: candidateInfo.name || 'Candidate',
-                email: candidateInfo.email || '',
-                phone: candidateInfo.phone || '',
-                status: 'completed' as const,
-                createdAt: new Date(),
-                startedAt: new Date()
-              };
+              // Create candidate object for AI summary - not used currently
+              // const candidate = {
+              //   id: candidateId,
+              //   name: candidateInfo.name || 'Candidate',
+              //   email: candidateInfo.email || '',
+              //   phone: candidateInfo.phone || '',
+              //   status: 'completed' as const,
+              //   createdAt: new Date(),
+              //   startedAt: new Date()
+              // };
 
-              // Create interview object using local responses
-              const interview = {
-                id: `interview_${candidateId}`,
-                candidateId: candidateId,
-                questions: questions,
-                answers: interviewResponses.map((r: any, index: number) => ({
-                  questionId: questions[index]?.id || `q_${index}`,
-                  answer: r.answer,
-                  timeSpent: r.timeUsed || 0,
-                  score: r.score,
-                  feedback: r.feedback,
-                  timestamp: new Date()
-                })),
-                currentQuestionIndex: questions.length,
-                isPaused: false
-              };
+              // Create interview object using local responses - not used currently  
+              // const interview = {
+              //   id: `interview_${candidateId}`,
+              //   candidateId: candidateId,
+              //   questions: questions,
+              //   answers: interviewResponses.map((r: any, index: number) => ({
+              //     questionId: questions[index]?.id || `q_${index}`,
+              //     answer: r.answer,
+              //     timeSpent: r.timeUsed || 0,
+              //     score: r.score,
+              //     feedback: r.feedback,
+              //     timestamp: new Date()
+              //   })),
+              //   currentQuestionIndex: questions.length,
+              //   isPaused: false
+              // };
 
-              const aiSummary = await aiService.generateInterviewSummary(interview, candidate);
+              const avgScore = interviewResponses.reduce((sum: number, r: any) => sum + (r.score || 0), 0) / interviewResponses.length;
               
               const finalReport = {
                 candidate: { 
-                  averageScore: aiSummary.score 
+                  averageScore: avgScore 
                 },
-                recommendation: aiSummary.score >= 70 ? 'Recommended' : aiSummary.score >= 50 ? 'Consider' : 'Not Recommended',
-                aiSummary: aiSummary.summary
+                recommendation: avgScore >= 70 ? 'Recommended' : avgScore >= 50 ? 'Consider' : 'Not Recommended',
+                aiSummary: `Interview completed with ${interviewResponses.length} questions answered. Average performance: ${Math.round(avgScore)}%.`
               };
               
               completeInterview(finalReport);

@@ -67,6 +67,13 @@ export interface InterviewSession {
   isActive: boolean;
 }
 
+export interface BatchScoringResult {
+  individualScores: Array<{ score: number; feedback: string }>;
+  overallScore: number;
+  overallFeedback: string;
+  recommendation: 'Hire' | 'Consider' | 'Pass';
+}
+
 export type TimerStatus = 'running' | 'paused' | 'stopped' | 'completed';
 
 export interface AppState {

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, Download, Eye, Clock, CheckCircle, AlertCircle, User, Award, Brain } from 'lucide-react';
+import { Users, Download, Eye, Clock, CheckCircle, User, Award, Brain } from 'lucide-react';
 
 // Inline styles for guaranteed CSS loading
 const interviewerStyles = {

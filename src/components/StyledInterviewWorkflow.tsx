@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Upload, Clock, CheckCircle, AlertCircle, FileText, Zap, Brain } from 'lucide-react';
+import { Clock, CheckCircle, AlertCircle, FileText, Zap, Brain } from 'lucide-react';
 
 // Types
 interface Question {
@@ -132,7 +132,7 @@ const StyledInterviewWorkflow = ({ user }: StyledInterviewWorkflowProps = {}) =>
   const [wasInFullscreen, setWasInFullscreen] = useState(false);
   
   // Violation tracking
-  const [screenChangeCount, setScreenChangeCount] = useState(0);
+  const [_screenChangeCount, setScreenChangeCount] = useState(0);
   const [violations, setViolations] = useState<Array<{
     type: 'fullscreen_exit' | 'tab_change' | 'window_blur';
     timestamp: Date;
@@ -395,7 +395,7 @@ const StyledInterviewWorkflow = ({ user }: StyledInterviewWorkflowProps = {}) =>
     }
   };
 
-  const handleSubmitResponse = async (isTimeUp = false) => {
+  const handleSubmitResponse = async (_isTimeUp = false) => {
     if (!interview || !currentQuestion) return;
 
     setLoading(true);
