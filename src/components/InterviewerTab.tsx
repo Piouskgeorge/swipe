@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import type { RootState } from '../store';
 import type { Candidate, ChatMessage } from '../types';
-import { cn } from '@/lib/utils';
+import { cn, formatRelativeDate } from '@/lib/utils';
 
 const InterviewerTab: React.FC = () => {
   const { candidates } = useSelector((state: RootState) => state.candidates);
@@ -296,7 +296,7 @@ const InterviewerTab: React.FC = () => {
                       <div>
                         <span className="text-xs text-gray-500">Completed</span>
                         <div className="font-medium">
-                          {interview.completedAt ? new Date(interview.completedAt).toLocaleDateString() : 'N/A'}
+                          {interview.completedAt ? formatRelativeDate(interview.completedAt) : 'N/A'}
                         </div>
                       </div>
                       <div>
@@ -379,7 +379,7 @@ const InterviewerTab: React.FC = () => {
                   
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Calendar className="h-3 w-3" />
-                    {new Date(candidate.createdAt).toLocaleDateString()}
+                    {formatRelativeDate(candidate.createdAt)}
                   </div>
                   
                   <Button
@@ -455,7 +455,7 @@ const InterviewerTab: React.FC = () => {
                   </div>
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Interview Date</label>
-                    <p className="text-sm">{new Date(selectedCandidate.createdAt).toLocaleString()}</p>
+                    <p className="text-sm">{formatRelativeDate(selectedCandidate.createdAt)}</p>
                   </div>
                 </CardContent>
               </Card>

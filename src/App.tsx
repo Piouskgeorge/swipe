@@ -76,7 +76,7 @@ function App() {
         {activeTab === 'interviewee' ? (
           <CleanInterviewTab />
         ) : (
-          <CrispInterviewerTab candidates={[]} />
+          <CrispInterviewerTab candidates={candidates} />
         )}
       </main>
 

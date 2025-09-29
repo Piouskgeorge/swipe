@@ -1,23 +1,7 @@
 import React, { useState } from 'react';
 import { Users, Download, Eye, Clock, CheckCircle, AlertCircle, User, Award, Brain } from 'lucide-react';
-
-interface Candidate {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  position?: string;
-  resumeData?: any;
-  resumeText?: string;
-  status: 'uploading' | 'interviewing' | 'completed' | 'terminated';
-  startedAt: Date;
-  completedAt?: Date;
-  finalScore?: number;
-  finalReport?: any;
-  responses?: any[];
-  questions?: any[];
-  violations?: any[];
-}
+import { formatRelativeDate } from '../lib/utils';
+import type { Candidate } from '../types';
 
 interface CrispInterviewerTabProps {
   candidates: Candidate[];
@@ -71,8 +55,10 @@ const CrispInterviewerTab: React.FC<CrispInterviewerTabProps> = ({
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
+      pending: { color: 'bg-gray-100 text-gray-800', icon: Clock, text: 'Pending' },
       uploading: { color: 'bg-yellow-100 text-yellow-800', icon: Clock, text: 'Uploading' },
       interviewing: { color: 'bg-blue-100 text-blue-800', icon: Clock, text: 'In Progress' },
+      paused: { color: 'bg-orange-100 text-orange-800', icon: AlertCircle, text: 'Paused' },
       completed: { color: 'bg-green-100 text-green-800', icon: CheckCircle, text: 'Completed' },
       terminated: { color: 'bg-red-100 text-red-800', icon: AlertCircle, text: 'Terminated' }
     };
@@ -234,7 +220,7 @@ const CrispInterviewerTab: React.FC<CrispInterviewerTabProps> = ({
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(candidate.startedAt).toLocaleDateString()}
+                      {formatRelativeDate(candidate.startedAt)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                       <button
@@ -289,7 +275,7 @@ const CrispInterviewerTab: React.FC<CrispInterviewerTabProps> = ({
           </div>
           
           <div className="text-right">
-            {getStatusBadge(selectedCandidate?.status || 'uploading')}
+            {getStatusBadge(selectedCandidate?.status || 'pending')}
             {selectedCandidate?.finalScore && (
               <div className="mt-2">
                 <span className={`text-3xl font-bold ${getScoreColor(selectedCandidate.finalScore)}`}>

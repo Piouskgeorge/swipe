@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Users, Download, Eye, Clock, CheckCircle, User, Award, Brain } from 'lucide-react';
+import { formatRelativeDate } from '../lib/utils';
 
 // Inline styles for guaranteed CSS loading
 const interviewerStyles = {
@@ -269,7 +270,7 @@ Candidate: ${candidate.name}
 Email: ${candidate.email}
 Phone: ${candidate.phone}
 Position: ${candidate.position || 'Not specified'}
-Date: ${new Date(candidate.startedAt).toLocaleDateString()}
+Date: ${formatRelativeDate(candidate.startedAt)}
 Status: ${candidate.status}
 Final Score: ${candidate.finalScore || 0}%
 
@@ -471,7 +472,7 @@ Summary: ${candidate.summary || candidate.finalReport?.aiSummary || 'No summary 
                     </td>
                     <td style={interviewerStyles.td}>
                       <span style={{ fontSize: '14px', color: '#6b7280' }}>
-                        {new Date(candidate.startedAt).toLocaleDateString()}
+                        {formatRelativeDate(candidate.startedAt)}
                       </span>
                     </td>
                     <td style={interviewerStyles.td}>

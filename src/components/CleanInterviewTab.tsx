@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useDispatch } from 'react-redux';
 import { Upload, Clock, MessageCircle, Send } from 'lucide-react';
 import aiService from '../services/aiService';
-import type { Answer, Question } from '../types';
+import type { Answer, Question, Candidate } from '../types';
+import { addCandidate } from '../store/slices/candidatesSlice';
 
 interface Message {
   id: string;
@@ -11,6 +13,8 @@ interface Message {
 }
 
 const CleanInterviewTab: React.FC = () => {
+  const dispatch = useDispatch();
+  
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -27,6 +31,13 @@ const CleanInterviewTab: React.FC = () => {
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [isTimerActive, setIsTimerActive] = useState(false);
+  const [candidateId, setCandidateId] = useState<string>('');
+  const [candidateInfo, setCandidateInfo] = useState<{
+    name?: string;
+    email?: string;
+    phone?: string;
+    resumeText?: string;
+  }>({});
   
   const chatEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -86,6 +97,16 @@ const CleanInterviewTab: React.FC = () => {
       addMessage("🔍 Analyzing your background...", 'system');
       const candidateData = await aiService.extractCandidateInfo(resumeText);
       
+      // Store candidate information
+      const newCandidateId = `candidate_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      setCandidateId(newCandidateId);
+      setCandidateInfo({
+        name: candidateData.name || 'Anonymous',
+        email: candidateData.email || 'anonymous@example.com',
+        phone: candidateData.phone || 'N/A',
+        resumeText
+      });
+      
       addMessage(`🎯 Analysis Complete!\n\nDomain: ${candidateData.domain}\nPosition: ${candidateData.position}\n\n🔄 Generating 6 personalized questions...`, 'system');
 
       // Check AI availability first
@@ -120,6 +141,23 @@ const CleanInterviewTab: React.FC = () => {
 
   const startInterview = () => {
     if (questions.length === 0) return;
+    
+    // Create initial candidate record when interview starts
+    const initialCandidate: Candidate = {
+      id: candidateId,
+      name: candidateInfo.name || 'Anonymous',
+      email: candidateInfo.email || 'anonymous@example.com', 
+      phone: candidateInfo.phone || 'N/A',
+      resumeText: candidateInfo.resumeText,
+      status: 'interviewing',
+      createdAt: new Date(),
+      startedAt: new Date(),
+      questions: questions,
+      responses: []
+    };
+
+    dispatch(addCandidate(initialCandidate));
+    
     setState('active');
     setCurrentQuestionIndex(0);
     askQuestion(0);
@@ -234,10 +272,46 @@ ${finalResult.individualScores.map((score, index) =>
 ${finalResult.overallFeedback}`;
       
       addMessage(resultsMessage, 'system');
+
+      // Create/Update candidate in Redux store
+      const candidate: Candidate = {
+        id: candidateId,
+        name: candidateInfo.name || 'Anonymous',
+        email: candidateInfo.email || 'anonymous@example.com',
+        phone: candidateInfo.phone || 'N/A',
+        resumeText: candidateInfo.resumeText,
+        status: 'completed',
+        createdAt: new Date(),
+        startedAt: new Date(),
+        completedAt: new Date(),
+        finalScore: finalResult.overallScore,
+        finalReport: finalResult,
+        questions: questions,
+        responses: answers
+      };
+
+      dispatch(addCandidate(candidate));
       
     } catch (error) {
       console.error('Final scoring failed:', error);
       addMessage("✅ Interview completed! All responses have been recorded.", 'system');
+
+      // Still create candidate record even if scoring failed
+      const candidate: Candidate = {
+        id: candidateId,
+        name: candidateInfo.name || 'Anonymous',
+        email: candidateInfo.email || 'anonymous@example.com',
+        phone: candidateInfo.phone || 'N/A',
+        resumeText: candidateInfo.resumeText,
+        status: 'completed',
+        createdAt: new Date(),
+        startedAt: new Date(),
+        completedAt: new Date(),
+        questions: questions,
+        responses: answers
+      };
+
+      dispatch(addCandidate(candidate));
     }
   };
 
