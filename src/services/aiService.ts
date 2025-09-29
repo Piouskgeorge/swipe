@@ -19,6 +19,44 @@ class AIService {
     }
   }
 
+  // Check if AI service is available
+  async checkAIAvailability(): Promise<{ available: boolean; message?: string }> {
+    if (!USE_AI || !this.model) {
+      return { available: false, message: "AI service is disabled. Using local algorithms." };
+    }
+
+    try {
+      // Simple test call to check API availability
+      await this.model.generateContent("test");
+      return { available: true };
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message.includes('503') || error.message.includes('Service Unavailable')) {
+          return { 
+            available: false, 
+            message: "Gemini AI is temporarily unavailable. Using local algorithms with quality questions and scoring." 
+          };
+        }
+        if (error.message.includes('429')) {
+          return { 
+            available: false, 
+            message: "AI service rate limit reached. Using local algorithms." 
+          };
+        }
+        if (error.message.includes('401') || error.message.includes('403')) {
+          return { 
+            available: false, 
+            message: "AI service authentication issue. Using local algorithms." 
+          };
+        }
+      }
+      return { 
+        available: false, 
+        message: "AI service temporarily unavailable. Using local algorithms." 
+      };
+    }
+  }
+
   // Resume parsing with AI enhancement
   async parseResume(file: File): Promise<string> {
     // This will still use the existing resumeParser utility
@@ -399,7 +437,7 @@ Return ONLY a JSON array with exactly this structure:
   {
     "text": "Question text here",
     "difficulty": "hard",
-    "timeLimit": 120,
+    "timeLimit": 120, 
     "category": "Category name" 
   },
   {
@@ -430,10 +468,17 @@ Return ONLY a JSON array with exactly this structure:
         }
       } catch (error) {
         console.error('AI question generation failed:', error);
+        // Check if it's a service unavailable error
+        if (error instanceof Error && error.message.includes('503')) {
+          console.warn('🔄 Gemini API temporarily unavailable (503), using local question bank...');
+        } else if (error instanceof Error && error.message.includes('Service Unavailable')) {
+          console.warn('🔄 AI service temporarily unavailable, using local question bank...');
+        }
       }
     }
 
     // Fallback to local generation with domain-specific questions
+    console.log('📝 Generating questions from local question bank...');
     return this.generateLocalQuestions(resumeText, positionInput, difficulty);
   }
 
@@ -731,11 +776,13 @@ FEEDBACK: [detailed technical feedback]`;
     // Ensure score is within bounds
     score = Math.min(100, Math.max(0, score));
     
-    const feedback = score >= 85 ? "Excellent technical response with comprehensive coverage and good examples." :
-                    score >= 70 ? "Good technical answer, shows solid understanding. Consider adding more specific examples." :
-                    score >= 55 ? "Adequate response, but could benefit from more technical depth and detail." :
-                    score >= 40 ? "Basic understanding shown, but needs more technical specificity and examples." :
-                    "Consider providing more detailed technical explanations and practical examples.";
+    const feedback = score >= 85 ? "Excellent answer" :
+                    score >= 70 ? "Good answer" :
+                    score >= 55 ? "Adequate answer" :
+                    score >= 40 ? "Basic answer" :
+                    score >= 20 ? "Poor answer" :
+                    score >= 5 ? "Minimal answer" :
+                    "No answer";
     
     return { score, feedback };
   }
@@ -836,48 +883,38 @@ ${qa.answer.answer || 'No answer provided'}
 ---`
         ).join('\n\n');
 
-        const prompt = `You are a senior technical interviewer evaluating a complete technical interview. Please analyze all questions and answers together to provide comprehensive scoring and feedback.
+        const prompt = `You are a senior technical interviewer evaluating a complete technical interview. Provide scores with minimal feedback.
 
 COMPLETE INTERVIEW DATA:
 ${interviewData}
 
-EVALUATION REQUIREMENTS:
-
-1. INDIVIDUAL QUESTION SCORING (0-100 each):
-Score each answer based on:
-- Technical Accuracy (40 points): Correctness and precision
-- Depth of Knowledge (30 points): Understanding of concepts
-- Practical Application (20 points): Real-world examples and use cases  
-- Communication (10 points): Clarity and structure
-
-2. OVERALL ASSESSMENT:
-- Calculate overall interview score (0-100)
-- Provide comprehensive feedback covering strengths and improvement areas
-- Give hiring recommendation: "Hire", "Consider", or "Pass"
+SCORING CRITERIA (0-100 each):
+- Technical Accuracy (40%), Knowledge Depth (30%), Practical Application (20%), Communication (10%)
+- "I don't know" answers = 0-5 points maximum
+- Irrelevant/nonsense answers = 0 points
+- Partial correct answers = 20-60 points based on accuracy
+- Comprehensive correct answers = 70-100 points
 
 CRITICAL INSTRUCTIONS:
-- Be fair but rigorous in technical evaluation
-- Consider difficulty level when scoring (easier questions need higher accuracy)
-- Value practical knowledge and real-world understanding
-- Account for time management in evaluation
-- Provide actionable, specific feedback
-- "I don't know" answers should receive 0-10 points maximum
+- Score strictly and fairly
+- Keep individual feedback to 1 short sentence maximum
+- Keep overall feedback brief (2-3 sentences)
+- Give hiring recommendation: "Hire", "Consider", or "Pass"
 
-FORMAT YOUR RESPONSE EXACTLY AS:
+FORMAT EXACTLY AS:
 
 INDIVIDUAL_SCORES:
-Q1: SCORE:[number] FEEDBACK:[specific technical feedback for question 1]
-Q2: SCORE:[number] FEEDBACK:[specific technical feedback for question 2]
-Q3: SCORE:[number] FEEDBACK:[specific technical feedback for question 3]
-Q4: SCORE:[number] FEEDBACK:[specific technical feedback for question 4]
-Q5: SCORE:[number] FEEDBACK:[specific technical feedback for question 5]
-Q6: SCORE:[number] FEEDBACK:[specific technical feedback for question 6]
+Q1: SCORE:[number] FEEDBACK:[brief sentence or "No answer provided"]
+Q2: SCORE:[number] FEEDBACK:[brief sentence or "No answer provided"]  
+Q3: SCORE:[number] FEEDBACK:[brief sentence or "No answer provided"]
+Q4: SCORE:[number] FEEDBACK:[brief sentence or "No answer provided"]
+Q5: SCORE:[number] FEEDBACK:[brief sentence or "No answer provided"]
+Q6: SCORE:[number] FEEDBACK:[brief sentence or "No answer provided"]
 
 OVERALL_SCORE: [number]
 
 OVERALL_FEEDBACK:
-[Comprehensive analysis including:
-- Technical strengths demonstrated
+[2-3 sentences maximum covering overall performance and recommendation]
 - Key areas for improvement  
 - Communication and problem-solving assessment
 - Specific recommendations for growth]
@@ -935,6 +972,9 @@ REASONING: [Brief explanation of recommendation]`;
 
       } catch (error) {
         console.error('❌ AI batch scoring failed:', error);
+        if (error instanceof Error && (error.message.includes('503') || error.message.includes('Service Unavailable'))) {
+          console.warn('🔄 Gemini AI temporarily unavailable, using local scoring algorithm...');
+        }
         console.log('🔄 Falling back to local scoring...');
         return this.scoreAllAnswersLocal(questionsAndAnswers);
       }
@@ -951,7 +991,7 @@ REASONING: [Brief explanation of recommendation]`;
       if (answerLower === "i don't know" || answerLower === "i dont know" || answerLower === "idk") {
         return {
           score: 0,
-          feedback: `No technical knowledge demonstrated for this ${qa.question.difficulty} question. Consider studying the relevant concepts and practicing with examples.`
+          feedback: "No answer provided"
         };
       }
       return this.scoreAnswerLocal(qa.answer, qa.question);
@@ -974,27 +1014,11 @@ REASONING: [Brief explanation of recommendation]`;
       overallScore >= 80 && answeredQuestions >= 5 ? 'Hire' : 
       overallScore >= 65 && answeredQuestions >= 4 ? 'Consider' : 'Pass';
 
-    const overallFeedback = `**Interview Performance Analysis**
-
-**Overall Score:** ${overallScore}/100
-**Questions Answered:** ${answeredQuestions}/${questionsAndAnswers.length}
-
-**Individual Question Performance:**
-${individualScores.map((score, index) => 
-  `Question ${index + 1} (${questionsAndAnswers[index].question.difficulty}): ${score.score}/100`
-).join('\n')}
-
-**Assessment:**
-${overallScore >= 75 ? 
-  'Good technical performance with solid understanding of core concepts.' :
-  overallScore >= 50 ? 
-  'Basic technical knowledge demonstrated. Room for improvement in depth and practical application.' :
-  'Limited technical knowledge shown. Significant preparation needed before considering technical roles.'}
-
-**Recommendation:** ${recommendation}
-${recommendation === 'Hire' ? 'Strong technical candidate ready for the role.' :
-  recommendation === 'Consider' ? 'Shows potential but needs development in key areas.' :
-  'Requires significant technical skill development before being ready for this role.'}`;
+    const overallFeedback = `Overall Score: ${overallScore}/100. Answered ${answeredQuestions}/6 questions. ${
+      overallScore >= 75 ? 'Good technical performance.' :
+      overallScore >= 50 ? 'Basic technical knowledge shown.' :
+      'Limited technical knowledge.'
+    }`;
 
     return {
       individualScores,

@@ -88,6 +88,12 @@ const CleanInterviewTab: React.FC = () => {
       
       addMessage(`🎯 Analysis Complete!\n\nDomain: ${candidateData.domain}\nPosition: ${candidateData.position}\n\n🔄 Generating 6 personalized questions...`, 'system');
 
+      // Check AI availability first
+      const aiStatus = await aiService.checkAIAvailability();
+      if (!aiStatus.available && aiStatus.message) {
+        addMessage(`ℹ️ ${aiStatus.message}`, 'system');
+      }
+
       // Generate ALL questions at once
       const allQuestions = await aiService.generateAllInterviewQuestions(
         resumeText,
@@ -97,7 +103,11 @@ const CleanInterviewTab: React.FC = () => {
       
       setQuestions(allQuestions);
       
-      addMessage(`✅ Interview Ready!\n\nI've prepared 6 technical questions:\n• 2 Easy (20s each)\n• 2 Medium (60s each)\n• 2 Hard (120s each)\n\nClick "Start Interview" when ready!`, 'system');
+      const preparationMessage = aiStatus.available 
+        ? `✅ Interview Ready!\n\nI've prepared 6 AI-generated technical questions:\n• 2 Easy (20s each)\n• 2 Medium (60s each)\n• 2 Hard (120s each)\n\nClick "Start Interview" when ready!`
+        : `✅ Interview Ready!\n\nI've prepared 6 high-quality questions from our expert question bank:\n• 2 Easy (20s each)\n• 2 Medium (60s each)\n• 2 Hard (120s each)\n\nClick "Start Interview" when ready!`;
+      
+      addMessage(preparationMessage, 'system');
       
       setState('ready');
       
@@ -191,6 +201,12 @@ ${question.text}
     addMessage("🎉 Interview Complete!\n\nAnalyzing all 6 responses together...", 'system');
     
     try {
+      // Check AI availability for scoring
+      const aiStatus = await aiService.checkAIAvailability();
+      if (!aiStatus.available && aiStatus.message) {
+        addMessage(`📊 ${aiStatus.message.replace('questions and scoring', 'scoring')}`, 'system');
+      }
+
       // Prepare all questions and answers for batch scoring
       const questionsAndAnswers = questions.map((question, index) => ({
         question,
@@ -210,15 +226,12 @@ ${question.text}
 **Overall Score: ${finalResult.overallScore}/100**
 **Recommendation: ${finalResult.recommendation}**
 
-**Performance Analysis:**
-${finalResult.overallFeedback}
-
 **Individual Scores:**
 ${finalResult.individualScores.map((score, index) => 
-  `Q${index + 1}: ${score.score}/100 - ${score.feedback}`
-).join('\n\n')}
+  `Q${index + 1}: ${score.score}/100`
+).join(' | ')}
 
-Thank you for completing the interview!`;
+${finalResult.overallFeedback}`;
       
       addMessage(resultsMessage, 'system');
       
